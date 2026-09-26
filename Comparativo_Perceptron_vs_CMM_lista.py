@@ -740,11 +740,11 @@ archivos_cmm = st.file_uploader(
 )
 
 # --- VALIDACIÓN DE CANTIDAD ---
-if len(archivos_perceptron) > 9:
+if len(archivos_perceptron) > 20:
     st.error("⚠️ Puedes cargar máximo 9 archivos PERCEPTRON.")
     st.stop()
 
-if len(archivos_cmm) > 9:
+if len(archivos_cmm) > 20:
     st.error("⚠️ Puedes cargar máximo 9 archivos CMM.")
     st.stop()
 

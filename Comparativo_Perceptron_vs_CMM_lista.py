@@ -8,93 +8,246 @@ import numpy as np
 import openpyxl
 from openpyxl.styles import PatternFill, Font
 from scipy import stats
+import plotly.graph_objects as go
  
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Convertir TXT Perceptron a Excel", layout="wide")
  
-# --- ESTILO GLOBAL (FONDO OSCURO, TABLAS CLARAS) ---
-st.markdown("""
-    <style>
-    body {
-        background-color: #121212;
-        color: #FFFFFF;
-        font-family: 'Poppins', sans-serif;
-    }
- 
-    .stApp {
-        background-color: #121212;
-    }
- 
-    /* Encabezados */
-    h1, h2, h3, h4 {
-        color: #ffc107;
-    }
- 
-    /* Área de subida de archivos */
-    div[data-testid="stFileUploader"] {
-        border: 2px dashed #5a5a5a !important;
-        background-color: rgba(50,50,50,0.7);
-        border-radius: 15px;
-        padding: 20px;
-    }
- 
-    div[data-testid="stFileUploader"]:hover {
-        border-color: #ffc107 !important;
-        background-color: rgba(80,80,80,0.9);
-    }
- 
-    /* Tabla de correlación */
-    .dataframe {
-        background: #2b2b2b !important;
-        color: #ffffff !important;
-        border-radius: 10px;
-        font-size: 15px;
-    }
- 
-    .dataframe td, .dataframe th {
-        text-align: center !important;
-        padding: 8px !important;
-    }
- 
-    /* Botón de descarga */
-    div.stDownloadButton > button {
-        background-color: #ffc107;
-        color: #000;
-        font-weight: bold;
-        border-radius: 10px;
-        border: none;
-        padding: 10px 25px;
-    }
- 
-    div.stDownloadButton > button:hover {
-        background-color: #ffde59;
-        color: #000;
-    }
-    </style>
-""", unsafe_allow_html=True)
- 
-# --- TÍTULO ---
-st.title("📄 Comparativo PU T2")
- 
-# --- FUNCIONES PARA PROCESAR ARCHIVOS ---
+# 🎨 ESTILO GLOBAL
 
+st.markdown("""
+<style>
+/*  FONDO GENERAL */
+.stApp {
+    background-color: #0f1115;
+    color: #ffffff;
+}
+.main {
+    background-color: #0f1115;
+}
+body {
+    background-color: #0f1115;
+    color: #ffffff;
+    font-family: 'Poppins', sans-serif;
+}
+.block-container {
+    max-width: 1500px;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+/*  ENCABEZADOS*/
+h1, h2, h3, h4 {
+    color: #ffc107 !important;
+    font-weight: 700 !important;
+}
+/* ENCABEZADO PRINCIPAL*/
+.app-header {
+    background: linear-gradient(
+        135deg,
+        #171a21,
+        #11141a
+    );
+    border: 1px solid #292e37;
+    border-left: 5px solid #ffc107;
+    border-radius: 14px;
+    padding: 22px 28px;
+    margin-bottom: 28px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+}
+.app-title {
+    font-size: 30px;
+    font-weight: 700;
+    color: #ffc107;
+}
+.app-subtitle {
+    font-size: 15px;
+    color: #aeb4bf;
+    margin-top: 7px;
+}
+/* SECCIONES*/
+.section-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffc107;
+
+    margin-top: 25px;
+    margin-bottom: 18px;
+}
+/* FILE UPLOADER */
+div[data-testid="stFileUploader"] {
+    background-color: #171a21 !important;
+    border: 2px dashed #454b56 !important;
+    border-radius: 14px !important;
+    padding: 18px !important;
+    transition: all 0.25s ease;
+}
+div[data-testid="stFileUploader"]:hover {
+    border-color: #ffc107 !important;
+    background-color: #1c2028 !important;
+    box-shadow:
+        0 0 15px rgba(255,193,7,0.08);
+}
+div[data-testid="stFileUploader"] label {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+/* METRICAS*/
+div[data-testid="stMetric"] {
+    background-color: #171a21 !important;
+    border: 1px solid #292e37 !important;
+    border-radius: 10px !important;
+    padding: 10px !important;
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.20);
+    transition: all 0.2s ease;
+}
+div[data-testid="stMetricValue"] {
+    font-size: 28px !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+div[data-testid="stMetricLabel"] {
+    font-size: 14px !important;
+    color: #aeb4bf !important;
+}
+div[data-testid="stMetric"]:hover {
+    border-color: #ffc107 !important;
+    box-shadow:
+        0 4px 18px rgba(255,193,7,0.08);
+}
+div[data-testid="stMetricLabel"] {
+    color: #aeb4bf !important;
+    font-weight: 500 !important;
+}
+div[data-testid="stMetricValue"] {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+/* TABLAS*/
+.dataframe {
+    background-color: #171a21 !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid #292e37 !important;
+    font-size: 14px;
+}
+.dataframe th {
+    background-color: #252a33 !important;
+    color: #ffc107 !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    padding: 10px !important;
+}
+.dataframe td {
+    background-color: #171a21 !important;
+    color: #ffffff !important;
+    text-align: center !important;
+    padding: 9px !important;
+}
+.dataframe tbody tr:hover td {
+    background-color: #20252d !important;
+}
+/* SELECTBOX */
+div[data-baseweb="select"] > div {
+    background-color: #171a21 !important;
+    border: 1px solid #3d434d !important;
+    border-radius: 10px !important;
+    color: #ffffff !important;
+}
+div[data-baseweb="select"] > div:hover {
+    border-color: #ffc107 !important;
+}
+/* BOTONES */
+.stButton > button {
+    background-color: #ffc107 !important;
+    color: #111111 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 24px !important;
+    font-weight: 700 !important;
+    transition: all 0.2s ease;
+}
+.stButton > button:hover {
+    background-color: #ffcf33 !important;
+    transform: translateY(-1px);
+    box-shadow:
+        0 5px 15px rgba(255,193,7,0.18);
+}
+/* BOTON DESCARGA */
+div.stDownloadButton > button {
+    background-color: #ffc107 !important;
+    color: #111111 !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    border: none !important;
+    padding: 10px 25px !important;
+}
+div.stDownloadButton > button:hover {
+    background-color: #ffcf33 !important;
+    box-shadow:
+        0 5px 15px rgba(255,193,7,0.18);
+}
+/* EXPANDER */
+div[data-testid="stExpander"] {
+    background-color: #171a21 !important;
+    border: 1px solid #292e37 !important;
+    border-radius: 12px !important;
+}
+/* GRAFICA */
+div[data-testid="stPlotlyChart"] {
+    background-color: #171a21 !important;
+    border: 1px solid #292e37 !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.20);
+}
+/* SEPARADORES */
+hr {
+    border: none;
+    border-top: 1px solid #292e37;
+    margin: 28px 0;
+}
+/* SCROLLBAR */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0f1115;
+}
+::-webkit-scrollbar-thumb {
+    background: #3d434d;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #ffc107;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 📄 ENCABEZADO PRINCIPAL
+st.markdown("""
+<div class="app-header">
+<div class="app-title">📄 Comparativo PU T2</div>
+<div class="app-subtitle">Comparación de mediciones PIERCE vs CMM</div>
+</div>
+""", unsafe_allow_html=True)
+#st.title("📄 Comparativo PU T2")
 def procesar_perceptron_txt(archivo):
     contenido = archivo.read().decode("latin-1").splitlines()
     encabezados, mediciones = [], []
     encabezado_encontrado = False
-
     for linea in contenido:
         partes = linea.strip().split("\t")
-
         if "JSN" in partes and "PSN" in partes:
             encabezados = partes
             encabezado_encontrado = True
             continue
-
         # Solo leer mediciones después del encabezado real.
         if not encabezado_encontrado:
             continue
-
         if (
             partes
             and len(partes) >= 2
@@ -102,10 +255,8 @@ def procesar_perceptron_txt(archivo):
             not in ["NOMINAL", "USL", "LSL", "UTL", "LTL", "URL", "LRL"]
         ):
             mediciones.append(partes)
-
     if not encabezados or not mediciones:
         return None, []
-
     filas_med = []
     for med in mediciones:
         fila = OrderedDict({
@@ -117,153 +268,83 @@ def procesar_perceptron_txt(archivo):
         for i, col in enumerate(encabezados[4:], start=4):
             fila[col] = med[i] if i < len(med) else ""
         filas_med.append(fila)
-
     eje_cols = encabezados[4:]
     return pd.DataFrame(filas_med), eje_cols
-
-
 def procesar_cmm_txt(archivo):
     """
     Lee archivos CMM con estructura:
-
         DIM 3000L PQC-15
         AX MEAS NOMINAL +TOL -TOL DEV OUTTOL
         X ...
         Y ...
         Z ...
-
     Guarda el DEV de cada eje como:
-
         3000L PQC-15[X]
         3000L PQC-15[Y]
         3000L PQC-15[Z]
     """
-
     contenido = archivo.read().decode("latin-1").splitlines()
-
-    # -----------------------------------------
     # OBTENER JSN
-    # -----------------------------------------
     jsn = ""
-
     for linea in contenido:
-
         m = re.search(
             r"TRACEFIELD\s+JSN\s*=\s*(\S+)",
             linea,
             re.IGNORECASE
         )
-
         if m:
             jsn = m.group(1).strip()
             break
-
-    # -----------------------------------------
     # MEDICIONES
-    # -----------------------------------------
     mediciones = OrderedDict()
-
     dim_actual = None
     leyendo_axis = False
-
     for linea in contenido:
-
         linea_limpia = linea.strip()
-
-        # -------------------------------------
         # DIM
-        # -------------------------------------
         m_dim = re.match(
             r"^\*?DIM\s+(.+?)\s*\*?$",
             linea_limpia,
             re.IGNORECASE
         )
-
         if m_dim:
-
             dim_actual = m_dim.group(1).strip()
-
-            # El CMM puede traer:
-            # 3000L PQC-15&#x20;
-            # quitamos basura HTML si aparece
-
             dim_actual = (
                 dim_actual
                 .replace("&#x20;", "")
                 .replace("&amp;", "&")
                 .strip()
             )
-
             leyendo_axis = False
-
             continue
-
-        # -------------------------------------
         # ENCABEZADO AX
-        # -------------------------------------
         if re.match(
             r"^\*?AX\s+MEAS\s+NOMINAL",
             linea_limpia,
             re.IGNORECASE
         ):
-
             if dim_actual is not None:
                 leyendo_axis = True
-
             continue
-
-        # -------------------------------------
-        # SI TODAVÍA NO ESTAMOS EN AX
-        # -------------------------------------
         if not leyendo_axis or dim_actual is None:
             continue
-
-        # -------------------------------------
-        # X / Y / Z / M
-        # -------------------------------------
         m_axis = re.match(
             r"^([XYZM])\s+(.+)$",
             linea_limpia,
             re.IGNORECASE
         )
-
         if m_axis:
-
             eje = m_axis.group(1).upper()
-
             resto = m_axis.group(2).strip()
-
             valores = resto.split()
-
-            # Necesitamos:
-            #
-            # NOMINAL
-            # +TOL
-            # -TOL
-            # DEV
-            # OUTTOL
-            #
-            # por eso mínimo 5 valores después del eje
-
             if len(valores) >= 5:
-
                 try:
-
-                    # DEV = posición 4
                     dev = float(valores[4])
-
                 except ValueError:
                     continue
-
                 nombre_cmm = f"{dim_actual}[{eje}]"
-
                 mediciones[nombre_cmm] = dev
-
             continue
-
-        # -------------------------------------
-        # FIN DEL BLOQUE AX
-        # -------------------------------------
         if (
             linea_limpia.startswith("*POINTDATA")
             or linea_limpia.startswith("POINTDATA")
@@ -272,43 +353,26 @@ def procesar_cmm_txt(archivo):
         ):
             leyendo_axis = False
 
-    # -----------------------------------------
-    # VALIDACIÓN
-    # -----------------------------------------
     if not jsn:
         return None, []
-
     if not mediciones:
         return None, []
 
-    # -----------------------------------------
-    # CREAR FILA
-    # -----------------------------------------
     fila = OrderedDict({
-
         "JSN": jsn,
-
         "PSN": jsn,
-
         "Fecha": "",
-
         "Hora": ""
-
     })
-
     fila.update(mediciones)
-
     return (
         pd.DataFrame([fila]),
         list(mediciones.keys())
     )
-
-
 def procesar_archivo(archivo, tipo):
     if tipo == "perceptron":
         return procesar_perceptron_txt(archivo)
     return procesar_cmm_txt(archivo)
-
 # --- MAPEO DE EJES ---
 FORCED_MAP = {
     "3000L PQC-15[X]": "3000L[X]",
@@ -513,82 +577,37 @@ FORCED_MAP = {
     "9908XRD PQC-3[Y]": "9908XRD[Y]",
     "9908XRD PQC-3[Z]": "9908XRD[Z]"
 }
-
-
 def map_axis(perceptron_axis):
-
     if perceptron_axis in FORCED_MAP:
         return FORCED_MAP[perceptron_axis]
-
     match = re.match(
         r"^(1100)([LR]\[[XYZ]\])$",
         perceptron_axis,
         re.IGNORECASE
     )
-
     if match:
         return f"3125{match.group(2)}"
-
     return perceptron_axis
-
-# ============================================================
 # ESTADISTICAS TIPO PERCEPTRON
-# ============================================================
-
 def calcular_estadisticas_perceptron(perceptron_vals, cmm_vals):
-
     perceptron_vals = np.asarray(perceptron_vals, dtype=float)
     cmm_vals = np.asarray(cmm_vals, dtype=float)
-
     # Eliminar NaN / infinitos
     mask = (
         np.isfinite(perceptron_vals) &
         np.isfinite(cmm_vals)
     )
-
     perceptron_vals = perceptron_vals[mask]
     cmm_vals = cmm_vals[mask]
-
     n = len(perceptron_vals)
-
     if n == 0:
         return None
-
-    # --------------------------------------------------------
-    # DIFFERENCE
-    # CMM - PIERCE
-    # --------------------------------------------------------
-
     difference = cmm_vals - perceptron_vals
-
-    # --------------------------------------------------------
-    # ADJUSTMENT
-    # Promedio de las diferencias
-    # --------------------------------------------------------
-
     adjustment = np.mean(difference)
-
-    # --------------------------------------------------------
-    # ADJUSTED PIERCE
-    # PIERCE + adjustment
-    # --------------------------------------------------------
-
     adjusted_perceptron = perceptron_vals + adjustment
-
-    # --------------------------------------------------------
-    # ADJUSTED DIFFERENCE
-    # --------------------------------------------------------
-
     adjusted_difference = cmm_vals - adjusted_perceptron
-
-    # --------------------------------------------------------
-    # FUNCION PARA ESTADISTICAS
-    # --------------------------------------------------------
-
     def estadisticas(valores):
-
         valores = np.asarray(valores, dtype=float)
-
         if len(valores) == 0:
             return {
                 "Mean": np.nan,
@@ -597,13 +616,10 @@ def calcular_estadisticas_perceptron(perceptron_vals, cmm_vals):
                 "Maximum": np.nan,
                 "Range": np.nan
             }
-
-        # STDEV.S -> ddof=1
         if len(valores) >= 2:
             std = np.std(valores, ddof=1)
         else:
             std = np.nan
-
         return {
             "Mean": np.mean(valores),
             "6 Sigma": std * 6 if not np.isnan(std) else np.nan,
@@ -611,17 +627,12 @@ def calcular_estadisticas_perceptron(perceptron_vals, cmm_vals):
             "Maximum": np.max(valores),
             "Range": np.max(valores) - np.min(valores)
         }
-
     stats_perceptron = estadisticas(perceptron_vals)
     stats_cmm = estadisticas(cmm_vals)
     stats_difference = estadisticas(difference)
     stats_adjusted = estadisticas(adjusted_perceptron)
     stats_adjusted_difference = estadisticas(adjusted_difference)
-
-    # --------------------------------------------------------
     # CORRELACION
-    # --------------------------------------------------------
-
     if (
         n >= 2
         and np.std(perceptron_vals, ddof=1) > 0
@@ -633,15 +644,8 @@ def calcular_estadisticas_perceptron(perceptron_vals, cmm_vals):
         )[0, 1]
     else:
         correlation = np.nan
-
-    # --------------------------------------------------------
-    # T-TEST PAREADO
-    #
-    # PIERCE vs CMM
-    # --------------------------------------------------------
-
+    # T-TEST PAREADO PIERCE vs CMM
     if n >= 2:
-
         try:
             t_test = stats.ttest_rel(
                 perceptron_vals,
@@ -649,178 +653,137 @@ def calcular_estadisticas_perceptron(perceptron_vals, cmm_vals):
             ).pvalue
         except Exception:
             t_test = np.nan
-
     else:
         t_test = np.nan
-
-    # --------------------------------------------------------
-    # F-TEST
-    #
-    # Compara las varianzas PIERCE vs CMM
-    # --------------------------------------------------------
-
+    # F-TEST Compara las varianzas PIERCE vs CMM
     if n >= 2:
-
         try:
-
             var_p = np.var(
                 perceptron_vals,
                 ddof=1
             )
-
             var_c = np.var(
                 cmm_vals,
                 ddof=1
             )
-
             if var_p > 0 and var_c > 0:
-
-                # Ponemos la mayor varianza arriba
-                # para que F >= 1
-
                 if var_p >= var_c:
                     f_value = var_p / var_c
                 else:
                     f_value = var_c / var_p
-
                 df1 = n - 1
                 df2 = n - 1
-
                 # p-value bilateral
                 p_one_tail = 1 - stats.f.cdf(
                     f_value,
                     df1,
                     df2
                 )
-
                 f_test = min(
                     1.0,
                     2 * p_one_tail
                 )
-
             else:
                 f_test = np.nan
-
         except Exception:
             f_test = np.nan
-
     else:
         f_test = np.nan
-
     return {
         "n": n,
-
         "PIERCE": stats_perceptron,
         "CMM": stats_cmm,
         "Difference": stats_difference,
         "Adjusted PIERCE": stats_adjusted,
         "Adjusted Difference": stats_adjusted_difference,
-
         "Adjustment": adjustment,
         "Correlation": correlation,
         "T-Test": t_test,
         "F-Test": f_test
     }
-
-# --- SUBIDA DE ARCHIVOS ---
-st.subheader("📤 Archivos PERCEPTRON")
-archivos_perceptron = st.file_uploader(
-    "Carga hasta 9 archivos TXT Perceptron",
-    type=["txt"],
-    accept_multiple_files=True,
-    key="perceptron"
-)
-
-st.subheader("📤 Archivos CMM")
-archivos_cmm = st.file_uploader(
-    "Carga hasta 9 archivos TXT CMM",
-    type=["txt"],
-    accept_multiple_files=True,
-    key="cmm"
-)
-
+# 📁 SUBIDA DE ARCHIVOS
+col_cmm, col_perceptron = st.columns(2)
+with col_cmm:
+    st.markdown("""
+    <div class="section-title">
+        📁 Archivo CMM
+    </div>
+    """, unsafe_allow_html=True)
+    archivos_cmm = st.file_uploader(
+        "Carga hasta 9 archivos TXT CMM",
+        type=["txt"],
+        accept_multiple_files=True,
+        key="cmm"
+    )
+with col_perceptron:
+    st.markdown("""
+    <div class="section-title">
+        📁 Archivos PIERCE
+    </div>
+    """, unsafe_allow_html=True)
+    archivos_perceptron = st.file_uploader(
+        "Carga hasta 9 archivos TXT Perceptron",
+        type=["txt"],
+        accept_multiple_files=True,
+        key="perceptron"
+    )
 # --- VALIDACIÓN DE CANTIDAD ---
 if len(archivos_perceptron) > 20:
-    st.error("⚠️ Puedes cargar máximo 9 archivos PERCEPTRON.")
+    st.error("⚠️ Puedes cargar máximo 20 archivos PERCEPTRON.")
     st.stop()
-
 if len(archivos_cmm) > 20:
-    st.error("⚠️ Puedes cargar máximo 9 archivos CMM.")
+    st.error("⚠️ Puedes cargar máximo 20 archivos CMM.")
     st.stop()
-
 # --- PROCESAMIENTO ---
 if archivos_perceptron and archivos_cmm:
-
     # Procesar todos los archivos PERCEPTRON
     perceptron_dfs = []
     for archivo in archivos_perceptron:
         df_tmp, _ = procesar_archivo(archivo, "perceptron")
         if df_tmp is not None and not df_tmp.empty:
             perceptron_dfs.append(df_tmp)
-
     # Procesar todos los archivos CMM
     cmm_dfs = []
     for archivo in archivos_cmm:
         df_tmp, _ = procesar_archivo(archivo, "cmm")
         if df_tmp is not None and not df_tmp.empty:
             cmm_dfs.append(df_tmp)
-
     if not perceptron_dfs:
         st.error("⚠️ Ningún archivo PERCEPTRON contiene mediciones válidas.")
         st.stop()
-
     if not cmm_dfs:
         st.error("⚠️ Ningún archivo CMM contiene mediciones válidas.")
         st.stop()
-
     df_perceptron = pd.concat(perceptron_dfs, ignore_index=True, sort=False)
     df_cmm = pd.concat(cmm_dfs, ignore_index=True, sort=False)
-
     st.success(
         f"✅ Procesados {len(perceptron_dfs)} archivos PERCEPTRON y "
         f"{len(cmm_dfs)} archivos CMM."
     )
-
-    # ============================================================
-    # MATCH: PERCEPTRON JSN == CMM TRACEFIELD JSN
-    # El PSN NO se utiliza para relacionar los archivos.
-    # ============================================================
     df_perceptron["JSN"] = df_perceptron["JSN"].astype(str).str.strip()
     df_cmm["JSN"] = df_cmm["JSN"].astype(str).str.strip()
-
     jsn_validos = sorted(
         set(df_perceptron["JSN"]).intersection(set(df_cmm["JSN"]))
     )
-
     if not jsn_validos:
         st.error(
             "⚠️ No se encontró coincidencia de JSN entre Perceptron y CMM. "
             "El CMM se identifica mediante TRACEFIELD JSN."
         )
         st.stop()
-
     df_match = pd.DataFrame({"JSN": jsn_validos})
-
     df_perceptron = df_perceptron[
         df_perceptron["JSN"].isin(jsn_validos)
     ].reset_index(drop=True)
-
     df_cmm = df_cmm[
         df_cmm["JSN"].isin(jsn_validos)
     ].reset_index(drop=True)
-
-    # ---------------------------------
-    # EXTRAER STATION Y MODEL DINÁMICO
-    # ---------------------------------
     nombre_archivo = archivos_perceptron[0].name.replace(".txt", "")
-
     if "_" in nombre_archivo:
         nombre_sin_fecha = nombre_archivo.split("_", 1)[1]
     else:
         nombre_sin_fecha = nombre_archivo
-
     partes = nombre_sin_fecha.split("_")
-
     if "Front" in partes:
         idx_front = partes.index("Front")
         station_name = "_".join(partes[:idx_front + 2])
@@ -832,61 +795,28 @@ if archivos_perceptron and archivos_cmm:
     else:
         station_name = nombre_sin_fecha
         model_name = "UNKNOWN"
-
-    # ---------------------------------
-    # MAPEOS: SOLO LOS PUNTOS DE LA LISTA
-    # ---------------------------------
-    #
-    # La lista FORCED_MAP es la lista maestra de puntos Perceptron.
-    # Para cada punto:
-    #   1) se intenta usar el CMM indicado por FORCED_MAP;
-    #   2) si ese nombre no existe en el CMM nuevo, se busca el
-    #      mismo punto como DIM del reporte CMM.
-    #
-    # Esto permite usar el CMM real con formato:
-    #   DIM 3000L PQC-15
-    #   X <MEAS>
-    #   Y <MEAS>
-    #   Z <MEAS>
-    # ============================================================
-    # MAPEO PERCEPTRON -> CMM
-    # ============================================================
-
     cmm_columnas = list(df_cmm.columns)
     perceptron_columnas = list(df_perceptron.columns)
-
     ejes_mapeados = []
-
     for cmm_eje, perceptron_eje in FORCED_MAP.items():
-
         # El punto debe existir en PERCEPTRON
         if perceptron_eje not in perceptron_columnas:
             continue
-
         # Buscar nombre EXACTO en CMM
         if cmm_eje in cmm_columnas:
-
             ejes_mapeados.append(
                 (
                     perceptron_eje,
                     cmm_eje
                 )
             )
-
         else:
-
-            # ----------------------------------------------------
-            # Si no existe exactamente, intentar por checkpoint
-            # ----------------------------------------------------
-
             match = re.match(
                 r"^(\d+[A-Z]+)\[([XYZ])\]$",
                 perceptron_eje.strip(),
                 re.IGNORECASE
             )
-
             if match:
-
                 checkpoint = match.group(1).upper()
                 axis = match.group(2).upper()
 
@@ -1310,6 +1240,94 @@ if archivos_perceptron and archivos_cmm:
                             else "N/A"
                         )
 
+                    # 📈 Gráfica PIERCE vs CMM
+
+                    st.markdown("### 📈 PIERCE vs CMM")
+
+                    df_grafica = pd.DataFrame({
+                        "Medición": range(1, len(perceptron_vals) + 1),
+                        "PIERCE": perceptron_vals,
+                        "CMM": cmm_vals
+                    })
+
+                    media_pierce = np.mean(perceptron_vals)
+                    media_cmm = np.mean(cmm_vals)
+
+                    fig = go.Figure()
+
+                    # PIERCE - AZUL
+                    fig.add_trace(go.Scatter(
+                        x=df_grafica["Medición"],
+                        y=df_grafica["PIERCE"],
+                        mode="lines+markers",
+                        name="PIERCE",
+                        line=dict(color="blue", width=3),
+                        marker=dict(size=7)
+                    ))
+
+                    # CMM - ROJO
+                    fig.add_trace(go.Scatter(
+                        x=df_grafica["Medición"],
+                        y=df_grafica["CMM"],
+                        mode="lines+markers",
+                        name="CMM",
+                        line=dict(color="red", width=3),
+                        marker=dict(size=7)
+                    ))
+
+                    # MEDIA PIERCE
+                    fig.add_hline(
+                        y=media_pierce,
+                        line_dash="dash",
+                        line_color="blue",
+                        line_width=2,
+                        annotation_text=f"Media PIERCE = {media_pierce:.3f}",
+                        annotation_position="top left"
+                    )
+
+                    # MEDIA CMM
+                    fig.add_hline(
+                        y=media_cmm,
+                        line_dash="dash",
+                        line_color="red",
+                        line_width=2,
+                        annotation_text=f"Media CMM = {media_cmm:.3f}",
+                        annotation_position="bottom left"
+                    )
+
+                    fig.update_layout(
+                        height=500,
+                        margin=dict(
+                            l=60,
+                            r=60,
+                            t=50,
+                            b=60
+                        ),
+                        xaxis_title="Medición",
+                        yaxis_title="Valor",
+                        autosize=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        )
+                    )
+
+                    # ============================================================
+                    # CENTRAR GRAFICA
+                    # ============================================================
+
+                    espacio_izquierdo, centro, espacio_derecho = st.columns(
+                        [1, 5, 1]
+                    )
+
+                    with centro:
+                        st.plotly_chart(
+                            fig,
+                            use_container_width=True
+                        )
                     # ------------------------------------------------
                     # ADJUSTMENT
                     # ------------------------------------------------

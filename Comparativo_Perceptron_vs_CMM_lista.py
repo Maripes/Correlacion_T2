@@ -69,7 +69,8 @@ h1, h2, h3, h4 {
     text-align: center;
     font-size: 18px;
     font-weight: 700;
-    color: #ffc107;
+    color: #ffc
+    107;
 
     margin-top: 25px;
     margin-bottom: 18px;
@@ -270,105 +271,154 @@ def procesar_perceptron_txt(archivo):
         filas_med.append(fila)
     eje_cols = encabezados[4:]
     return pd.DataFrame(filas_med), eje_cols
+
 def procesar_cmm_txt(archivo):
-    """
-    Lee archivos CMM con estructura:
-        DIM 3000L PQC-15
-        AX MEAS NOMINAL +TOL -TOL DEV OUTTOL
-        X ...
-        Y ...
-        Z ...
-    Guarda el DEV de cada eje como:
-        3000L PQC-15[X]
-        3000L PQC-15[Y]
-        3000L PQC-15[Z]
-    """
+
     contenido = archivo.read().decode("latin-1").splitlines()
+
+    # =========================
     # OBTENER JSN
+    # =========================
     jsn = ""
+
     for linea in contenido:
         m = re.search(
             r"TRACEFIELD\s+JSN\s*=\s*(\S+)",
             linea,
             re.IGNORECASE
         )
+
         if m:
             jsn = m.group(1).strip()
             break
-    # MEDICIONES
+
+    # =========================
+    # VARIABLES
+    # =========================
     mediciones = OrderedDict()
     dim_actual = None
     leyendo_axis = False
+
+    # =========================
+    # RECORRER ARCHIVO
+    # =========================
     for linea in contenido:
+
         linea_limpia = linea.strip()
-        # DIM
+
+        # -------------------------
+        # DETECTAR DIM
+        # -------------------------
         m_dim = re.match(
-            r"^\*?DIM\s+(.+?)\s*\*?$",
+            r"^\*?\s*DIM\s+(.+?)\s*$",
             linea_limpia,
             re.IGNORECASE
         )
+
         if m_dim:
+
+            # Nuevo DIM
             dim_actual = m_dim.group(1).strip()
+
             dim_actual = (
                 dim_actual
-                .replace("&#x20;", "")
+                .replace("&#x20;", " ")
                 .replace("&amp;", "&")
                 .strip()
             )
+
+            # MUY IMPORTANTE:
+            # al entrar a un nuevo DIM,
+            # todavía no estamos leyendo valores
             leyendo_axis = False
+
             continue
-        # ENCABEZADO AX
+
+        # -------------------------
+        # DETECTAR ENCABEZADO AX
+        # -------------------------
         if re.match(
-            r"^\*?AX\s+MEAS\s+NOMINAL",
+            r"^\*?\s*AX\s+",
             linea_limpia,
             re.IGNORECASE
         ):
-            if dim_actual is not None:
+
+            if (
+                "MEAS" in linea_limpia.upper()
+                and "DEV" in linea_limpia.upper()
+            ):
                 leyendo_axis = True
+
             continue
-        if not leyendo_axis or dim_actual is None:
-            continue
-        m_axis = re.match(
-            r"^([XYZM])\s+(.+)$",
-            linea_limpia,
-            re.IGNORECASE
-        )
-        if m_axis:
-            eje = m_axis.group(1).upper()
-            resto = m_axis.group(2).strip()
-            valores = resto.split()
-            if len(valores) >= 5:
-                try:
-                    dev = float(valores[4])
-                except ValueError:
-                    continue
-                nombre_cmm = f"{dim_actual}[{eje}]"
-                mediciones[nombre_cmm] = dev
-            continue
+
+        # ==================================================
+        # AQUÍ VA EL BLOQUE QUE ME PREGUNTASTE
+        # ==================================================
+        if leyendo_axis and dim_actual is not None:
+
+            m_axis = re.match(
+                r"^([XYZM])\s+(.+)$",
+                linea_limpia,
+                re.IGNORECASE
+            )
+
+            if m_axis:
+
+                eje = m_axis.group(1).upper()
+
+                valores = m_axis.group(2).split()
+
+                if len(valores) >= 5:
+
+                    try:
+                        dev = float(valores[4])
+
+                    except ValueError:
+                        continue
+
+                    nombre_cmm = f"{dim_actual}[{eje}]"
+
+                    mediciones[nombre_cmm] = dev
+
+                continue
+
+        # -------------------------
+        # TERMINAR BLOQUE AX
+        # -------------------------
         if (
-            linea_limpia.startswith("*POINTDATA")
-            or linea_limpia.startswith("POINTDATA")
-            or linea_limpia.startswith("*DIM")
-            or linea_limpia.startswith("DIM ")
+            linea_limpia.upper().startswith("POINTDATA")
+            or linea_limpia.upper().startswith("*POINTDATA")
+            or linea_limpia.upper().startswith("TRACEFIELD")
+            or linea_limpia.upper().startswith("*TRACEFIELD")
         ):
             leyendo_axis = False
 
+    # =========================
+    # VALIDAR JSN
+    # =========================
     if not jsn:
         return None, []
+
     if not mediciones:
         return None, []
 
+    # =========================
+    # CREAR FILA
+    # =========================
     fila = OrderedDict({
         "JSN": jsn,
         "PSN": jsn,
         "Fecha": "",
         "Hora": ""
     })
+
     fila.update(mediciones)
+
     return (
         pd.DataFrame([fila]),
         list(mediciones.keys())
     )
+
 def procesar_archivo(archivo, tipo):
     if tipo == "perceptron":
         return procesar_perceptron_txt(archivo)
@@ -756,6 +806,9 @@ if archivos_perceptron and archivos_cmm:
         st.stop()
     df_perceptron = pd.concat(perceptron_dfs, ignore_index=True, sort=False)
     df_cmm = pd.concat(cmm_dfs, ignore_index=True, sort=False)
+    
+    st.write("### 🔍 Columnas CMM detectadas")
+    st.write(df_cmm.columns.tolist())
     st.success(
         f"✅ Procesados {len(perceptron_dfs)} archivos PERCEPTRON y "
         f"{len(cmm_dfs)} archivos CMM."

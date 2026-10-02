@@ -936,12 +936,6 @@ if archivos_perceptron and archivos_cmm:
     df_perceptron = pd.concat(perceptron_dfs, ignore_index=True, sort=False)
     df_cmm = pd.concat(cmm_dfs, ignore_index=True, sort=False)
     
-    st.write("### 🔍 Columnas CMM detectadas")
-    st.write(df_cmm.columns.tolist())
-    st.success(
-        f"✅ Procesados {len(perceptron_dfs)} archivos PERCEPTRON y "
-        f"{len(cmm_dfs)} archivos CMM."
-    )
     df_perceptron["JSN"] = df_perceptron["JSN"].astype(str).str.strip()
     df_cmm["JSN"] = df_cmm["JSN"].astype(str).str.strip()
     jsn_validos = sorted(

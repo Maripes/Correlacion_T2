@@ -9,7 +9,6 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font
 from scipy import stats
 import plotly.graph_objects as go
-from supabase import create_client
  
 # 🎨 ESTILO GLOBAL
 st.markdown("""

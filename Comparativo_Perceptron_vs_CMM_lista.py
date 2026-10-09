@@ -9,224 +9,494 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font
 from scipy import stats
 import plotly.graph_objects as go
- 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Convertir TXT Perceptron a Excel", layout="wide")
+from supabase import create_client
  
 # 🎨 ESTILO GLOBAL
-
 st.markdown("""
 <style>
-/*  FONDO GENERAL */
+
+/* =========================================================
+   CONFIGURACIÓN GENERAL
+========================================================= */
+
 .stApp {
-    background-color: #0f1115;
-    color: #ffffff;
+    background-color: #f5f6f8;
+    color: #1f2937;
 }
+
 .main {
-    background-color: #0f1115;
+    background-color: #f5f6f8;
 }
+
 body {
-    background-color: #0f1115;
-    color: #ffffff;
+    background-color: #f5f6f8;
+    color: #1f2937;
     font-family: 'Poppins', sans-serif;
 }
+
 .block-container {
     max-width: 1500px;
     padding-top: 2rem;
     padding-bottom: 3rem;
 }
-/*  ENCABEZADOS*/
+
+
+/* =========================================================
+   ENCABEZADOS
+========================================================= */
+
 h1, h2, h3, h4 {
-    color: #ffc107 !important;
+    color: #1f2937 !important;
     font-weight: 700 !important;
 }
-/* ENCABEZADO PRINCIPAL*/
+
+
+/* =========================================================
+   ENCABEZADO PRINCIPAL
+========================================================= */
+
 .app-header {
     background: linear-gradient(
         135deg,
-        #171a21,
-        #11141a
+        #ffffff,
+        #eef0f3
     );
-    border: 1px solid #292e37;
-    border-left: 5px solid #ffc107;
+
+    border: 1px solid #d9dde3;
+    border-left: 5px solid #f2b705;
+
     border-radius: 14px;
+
     padding: 22px 28px;
     margin-bottom: 28px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.08);
 }
+
 .app-title {
     font-size: 30px;
     font-weight: 700;
-    color: #ffc107;
+    color: #1f2937;
 }
+
 .app-subtitle {
     font-size: 15px;
-    color: #aeb4bf;
+    color: #6b7280;
     margin-top: 7px;
 }
-/* SECCIONES*/
+
+
+/* =========================================================
+   TÍTULOS DE SECCIÓN
+========================================================= */
+
 .section-title {
     text-align: center;
+
     font-size: 18px;
     font-weight: 700;
-    color: #ffc
-    107;
+
+    color: #374151;
 
     margin-top: 25px;
     margin-bottom: 18px;
 }
-/* FILE UPLOADER */
+
+
+/* =========================================================
+   FILE UPLOADER
+========================================================= */
+
 div[data-testid="stFileUploader"] {
-    background-color: #171a21 !important;
-    border: 2px dashed #454b56 !important;
+    background-color: #ffffff !important;
+
+    border: 2px dashed #cfd4da !important;
+
     border-radius: 14px !important;
+
     padding: 18px !important;
+
     transition: all 0.25s ease;
-}
-div[data-testid="stFileUploader"]:hover {
-    border-color: #ffc107 !important;
-    background-color: #1c2028 !important;
+
     box-shadow:
-        0 0 15px rgba(255,193,7,0.08);
+        0 2px 8px rgba(0,0,0,0.04);
 }
+
+div[data-testid="stFileUploader"]:hover {
+
+    border-color: #f2b705 !important;
+
+    background-color: #fffdf5 !important;
+
+    box-shadow:
+        0 4px 15px rgba(242,183,5,0.12);
+}
+
 div[data-testid="stFileUploader"] label {
-    color: #ffffff !important;
+
+    color: #374151 !important;
+
     font-weight: 600 !important;
 }
-/* METRICAS*/
+
+
+/* =========================================================
+   MÉTRICAS
+========================================================= */
+
 div[data-testid="stMetric"] {
-    background-color: #171a21 !important;
-    border: 1px solid #292e37 !important;
-    border-radius: 10px !important;
-    padding: 10px !important;
+
+    background-color: #ffffff !important;
+
+    border: 1px solid #dfe3e8 !important;
+
+    border-radius: 12px !important;
+
+    padding: 14px !important;
+
     box-shadow:
-        0 4px 15px rgba(0,0,0,0.20);
+        0 3px 12px rgba(0,0,0,0.06);
+
     transition: all 0.2s ease;
 }
-div[data-testid="stMetricValue"] {
-    font-size: 28px !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}
-div[data-testid="stMetricLabel"] {
-    font-size: 14px !important;
-    color: #aeb4bf !important;
-}
+
 div[data-testid="stMetric"]:hover {
-    border-color: #ffc107 !important;
+
+    border-color: #f2b705 !important;
+
     box-shadow:
-        0 4px 18px rgba(255,193,7,0.08);
+        0 5px 18px rgba(242,183,5,0.12);
+
+    transform: translateY(-1px);
 }
+
 div[data-testid="stMetricLabel"] {
-    color: #aeb4bf !important;
+
+    font-size: 14px !important;
+
+    color: #6b7280 !important;
+
     font-weight: 500 !important;
 }
+
 div[data-testid="stMetricValue"] {
-    color: #ffffff !important;
+
+    font-size: 28px !important;
+
+    color: #111827 !important;
+
     font-weight: 700 !important;
 }
-/* TABLAS*/
-.dataframe {
-    background-color: #171a21 !important;
-    color: #ffffff !important;
+
+
+/* =========================================================
+   TABLAS - CORRELACIÓN
+========================================================= */
+
+/* Contenedor de la tabla */
+div[data-testid="stDataFrame"] {
+    background-color: #ffffff !important;
+    border: 1px solid #dfe3e8 !important;
     border-radius: 12px !important;
     overflow: hidden !important;
-    border: 1px solid #292e37 !important;
-    font-size: 14px;
 }
+
+/* Toda la tabla */
+div[data-testid="stDataFrame"] div {
+    color: #1f2937 !important;
+}
+
+/* Encabezados */
+div[data-testid="stDataFrame"] th {
+    background-color: #e9ecef !important;
+    color: #1f2937 !important;
+    font-weight: 700 !important;
+}
+
+/* Celdas */
+div[data-testid="stDataFrame"] td {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
+/* Texto dentro de las celdas */
+div[data-testid="stDataFrame"] span {
+    color: #1f2937 !important;
+}
+
+/* Texto generado por Glide Data Grid */
+div[data-testid="stDataFrame"] [role="gridcell"] {
+    color: #1f2937 !important;
+}
+
+/* Encabezados del grid */
+div[data-testid="stDataFrame"] [role="columnheader"] {
+    color: #1f2937 !important;
+    background-color: #e9ecef !important;
+}
+
+/* Hover */
+div[data-testid="stDataFrame"] [role="gridcell"]:hover {
+    background-color: #f3f4f6 !important;
+}
+
+/* Si usas st.table en alguna parte */
+.dataframe {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
 .dataframe th {
-    background-color: #252a33 !important;
-    color: #ffc107 !important;
-    font-weight: 700 !important;
-    text-align: center !important;
-    padding: 10px !important;
+    background-color: #e9ecef !important;
+    color: #1f2937 !important;
 }
+
 .dataframe td {
-    background-color: #171a21 !important;
-    color: #ffffff !important;
-    text-align: center !important;
-    padding: 9px !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
 }
-.dataframe tbody tr:hover td {
-    background-color: #20252d !important;
-}
-/* SELECTBOX */
+
+
+/* =========================================================
+   SELECTBOX
+========================================================= */
+
 div[data-baseweb="select"] > div {
-    background-color: #171a21 !important;
-    border: 1px solid #3d434d !important;
+
+    background-color: #ffffff !important;
+
+    border: 1px solid #cfd4da !important;
+
     border-radius: 10px !important;
-    color: #ffffff !important;
+
+    color: #1f2937 !important;
 }
+
 div[data-baseweb="select"] > div:hover {
-    border-color: #ffc107 !important;
+
+    border-color: #f2b705 !important;
 }
-/* BOTONES */
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+input,
+textarea {
+
+    background-color: #ffffff !important;
+
+    color: #1f2937 !important;
+
+    border: 1px solid #cfd4da !important;
+
+    border-radius: 8px !important;
+}
+
+input:focus,
+textarea:focus {
+
+    border-color: #f2b705 !important;
+
+    box-shadow:
+        0 0 0 1px #f2b705 !important;
+}
+
+
+/* =========================================================
+   BOTONES
+========================================================= */
+
 .stButton > button {
-    background-color: #ffc107 !important;
-    color: #111111 !important;
+
+    background-color: #f2b705 !important;
+
+    color: #1f2937 !important;
+
     border: none !important;
+
     border-radius: 10px !important;
+
     padding: 10px 24px !important;
+
     font-weight: 700 !important;
+
     transition: all 0.2s ease;
 }
+
 .stButton > button:hover {
-    background-color: #ffcf33 !important;
+
+    background-color: #e0a900 !important;
+
+    color: #111827 !important;
+
     transform: translateY(-1px);
+
     box-shadow:
-        0 5px 15px rgba(255,193,7,0.18);
+        0 5px 15px rgba(242,183,5,0.20);
 }
-/* BOTON DESCARGA */
+
+
+/* =========================================================
+   BOTÓN DESCARGA
+========================================================= */
+
 div.stDownloadButton > button {
-    background-color: #ffc107 !important;
-    color: #111111 !important;
+
+    background-color: #f2b705 !important;
+
+    color: #1f2937 !important;
+
     font-weight: 700 !important;
+
     border-radius: 10px !important;
+
     border: none !important;
+
     padding: 10px 25px !important;
+
+    transition: all 0.2s ease;
 }
+
 div.stDownloadButton > button:hover {
-    background-color: #ffcf33 !important;
+
+    background-color: #e0a900 !important;
+
     box-shadow:
-        0 5px 15px rgba(255,193,7,0.18);
+        0 5px 15px rgba(242,183,5,0.20);
 }
-/* EXPANDER */
+
+
+/* =========================================================
+   EXPANDER
+========================================================= */
+
 div[data-testid="stExpander"] {
-    background-color: #171a21 !important;
-    border: 1px solid #292e37 !important;
+
+    background-color: #ffffff !important;
+
+    border: 1px solid #dfe3e8 !important;
+
     border-radius: 12px !important;
-}
-/* GRAFICA */
-div[data-testid="stPlotlyChart"] {
-    background-color: #171a21 !important;
-    border: 1px solid #292e37 !important;
-    border-radius: 14px !important;
-    padding: 8px !important;
+
     box-shadow:
-        0 4px 15px rgba(0,0,0,0.20);
+        0 3px 10px rgba(0,0,0,0.05);
 }
-/* SEPARADORES */
+
+
+/* =========================================================
+   GRAFICA
+========================================================= */
+
+div[data-testid="stPlotlyChart"] {
+
+    background-color: #ffffff !important;
+
+    border: 1px solid #dfe3e8 !important;
+
+    border-radius: 14px !important;
+
+    padding: 8px !important;
+
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.07);
+}
+
+
+/* =========================================================
+   ALERTAS / MENSAJES
+========================================================= */
+
+div[data-testid="stAlert"] {
+
+    border-radius: 10px !important;
+
+    border: 1px solid #dfe3e8 !important;
+}
+
+
+/* =========================================================
+   SEPARADORES
+========================================================= */
+
 hr {
+
     border: none;
-    border-top: 1px solid #292e37;
+
+    border-top: 1px solid #d9dde3;
+
     margin: 28px 0;
 }
-/* SCROLLBAR */
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
 ::-webkit-scrollbar {
+
     width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: #0f1115;
+
+    background: #eef0f3;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: #3d434d;
+
+    background: #c5cbd3;
+
     border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #ffc107;
+
+    background: #f2b705;
 }
+
+
+/* =========================================================
+   TEXTO GENERAL DE STREAMLIT
+========================================================= */
+
+.stMarkdown,
+.stText,
+label {
+
+    color: #374151 !important;
+}
+
+
+/* =========================================================
+   RADIO / CHECKBOX
+========================================================= */
+
+div[data-testid="stCheckbox"] label,
+div[data-testid="stRadio"] label {
+
+    color: #374151 !important;
+}
+
+
+/* =========================================================
+   FILE NAME / ARCHIVOS CARGADOS
+========================================================= */
+
+div[data-testid="stFileUploaderFile"] {
+
+    background-color: #f8f9fa !important;
+
+    border: 1px solid #dfe3e8 !important;
+
+    border-radius: 8px !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
+
 
 # 📄 ENCABEZADO PRINCIPAL
 st.markdown("""
@@ -1275,15 +1545,15 @@ if archivos_perceptron and archivos_cmm:
                 return 'background-color: #47FF47; color: #000000; font-weight: 600;'
             elif val >= 0.69:
                 return 'background-color: #FFFD00; color: #000000; font-weight: 600;'
-        return 'color: #FFFFFF;'
+        return 'color: #2b2b2b;'
  
     def colorear_offset(val):
         if isinstance(val, (int, float)):
             if abs(val) > 1:
-                return 'background-color: #FF0000; color: #FFFFFF; font-weight: 600;'
+                return 'background-color: #FF0000; color: #2b2b2b; font-weight: 600;'
             elif abs(val) > 0.5:
-                return 'background-color: #FFFD00; color: #000000; font-weight: 600;'
-        return 'color: #FFFFFF;'
+                return 'background-color: #FFFD00; color: #2b2b2b; font-weight: 600;'
+        return 'color: #2b2b2b;'
     
     df_correlacion_styled = (
         df_correlacion.style
@@ -1291,12 +1561,12 @@ if archivos_perceptron and archivos_cmm:
         .apply(lambda col: col.map(colorear_offset) if col.name == "Calculated-Offset" else [""]*len(col), axis=0)
         .set_table_styles([
             {'selector': 'th', 'props': [('background-color', '#2b2b2b'),
-                                        ('color', '#FFFFFF'),
+                                        ('color', "#2b2b2b"),
                                         ('font-weight', 'bold'),
                                         ('text-align', 'center'),
                                         ('padding', '8px')]},
             {'selector': 'td', 'props': [('background-color', '#1e1e1e'),
-                                        ('color', '#FFFFFF'),
+                                        ('color', "#2b2b2b"),
                                         ('text-align', 'center'),
                                         ('padding', '8px')]},
             {'selector': 'tbody tr:hover', 'props': [('background-color', '#333333')]},
